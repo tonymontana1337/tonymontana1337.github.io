@@ -40,7 +40,9 @@ svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stro
 .feed,.chat{flex:1;min-height:0}
 .feed{overflow:auto;padding:20px 14px 100px;display:flex;flex-direction:column;gap:14px}
 .day{align-self:center;font-size:12px;font-weight:500;background:rgba(0,0,0,.7);padding:3px 12px;border-radius:999px;color:#ddd}
-.post{max-width:600px;border-radius:22px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.post{max-width:600px;border-radius:22px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12)}
+.post.light{color:#161616;border-color:transparent}
+.post.light .meta,.post.light .lnk{color:rgba(0,0,0,.6)}
 .post img{display:block;width:100%;max-height:380px;object-fit:cover}
 .body{padding:14px 18px 6px;white-space:pre-wrap;overflow-wrap:anywhere}
 .body h3{margin:0 0 4px;font:600 20px/1.25 var(--sf);letter-spacing:-.015em}
@@ -97,11 +99,12 @@ dialog textarea{min-height:140px;resize:vertical}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row .sp{flex:1}
 .prev{max-height:110px;border-radius:10px;margin-bottom:10px}
 input[type=file]{display:none}
-.sw{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 .sw[aria-checked="true"]{border-color:#fff;box-shadow:inset 0 0 0 2px #000}
 .chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid currentColor}
 .item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-.item select{width:auto;margin:0;flex:none}.item .sp{flex:1}
+.item select{width:auto;margin:0;flex:none}
+select{-webkit-appearance:none;appearance:none;background:#000 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23aaa' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center/12px;padding-right:34px!important;cursor:pointer}.item .sp{flex:1}
 .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#f5f5f7;color:#000;padding:9px 18px;border-radius:999px;font-size:14px;font-weight:500;z-index:40;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw}
 .toast.show{opacity:1}
 @media(max-width:560px){.top h2{font-size:19px}.seg button{padding:6px 12px}.intro .hi{font-size:38px}.m{max-width:88%}}
@@ -194,7 +197,9 @@ const CH=[
  {id:'rumor',name:'Rumors',sub:'unconfirmed',i:ic('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>')},
  {id:'arch',name:'Archive',sub:'older posts',i:ic('<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>')}
 ];
-const COLORS=['#9b1c31','#1e40af','#166534','#6d28d9','#b45309','#0e7490','#be185d'];
+const COLORS=['#111111','#f4f1ea','#a3b88a','#81d8d0','#c4b5e8','#f2dc9b','#f0a98b','#e9b8c8'];
+const LIGHT=new Set(COLORS.slice(1));
+const NAMES={'#111111':'Black','#f4f1ea':'White','#a3b88a':'Matcha','#81d8d0':'Tiffany','#c4b5e8':'Lavender','#f2dc9b':'Butter','#f0a98b':'Peach','#e9b8c8':'Rose'};
 let db=null,user=null,me=null,isOwner=false,cur='news',view='news';
 let posts=[],chat=[],roles={},members={},settings={},names={};
 let editId=null,img=null,color=COLORS[0],replyTo='';
@@ -240,7 +245,8 @@ function setView(v){
 $('#tNews').onclick=()=>setView('news');$('#tChat').onclick=()=>setView('chat');
 
 /* news */
-const bg=p=>{const c=COLORS.includes(p.color)?p.color:COLORS[0];return `background:linear-gradient(160deg,${c}d9,${c}80),#000`};
+const pcol=p=>COLORS.includes(p.color)?p.color:COLORS[0];
+const bg=p=>`background:${pcol(p)}`;
 function renderFeed(){
   const f=$('#feed');
   if(!db){f.innerHTML='<div class="empty">Site is not connected to a database yet.</div>';return}
@@ -249,7 +255,7 @@ function renderFeed(){
   let out='',last='';
   list.forEach(p=>{
     const d=dl(p.t);if(d!==last){out+=`<div class="day">${d}</div>`;last=d}
-    out+=`<article class="post" style="${bg(p)}">${p.img?`<img alt="" src="${esc(p.img)}">`:''}<div class="body">${p.title?`<h3>${esc(p.title)}</h3>`:''}${esc(p.text)}</div>
+    out+=`<article class="post${LIGHT.has(pcol(p))?' light':''}" style="${bg(p)}">${p.img?`<img alt="" src="${esc(p.img)}">`:''}<div class="body">${p.title?`<h3>${esc(p.title)}</h3>`:''}${esc(p.text)}</div>
     <div class="meta"><button class="lnk" data-disc="${p.id}">Discuss</button><span class="sp"></span>${isOwner?`<button class="lnk" data-edit="${p.id}">Edit</button><button class="lnk" data-del="${p.id}">Delete</button>`:''}<span>${fmt(p.t)}</span></div></article>`;
   });
   f.innerHTML=out;f.scrollTop=f.scrollHeight;
@@ -261,7 +267,7 @@ function renderFeed(){
 /* editor (owner only; the database also refuses writes from anyone else) */
 function setImg(v){img=v;$('#prev').classList.toggle('hidden',!v);$('#noImg').classList.toggle('hidden',!v);if(v)$('#prev').src=v}
 function setColor(c){color=c;document.querySelectorAll('.sw').forEach(b=>b.setAttribute('aria-checked',b.dataset.c===c))}
-$('#sw').innerHTML=COLORS.map(c=>`<button type="button" class="sw" role="radio" aria-checked="false" aria-label="Color ${c}" data-c="${c}" style="background:${c}"></button>`).join('');
+$('#sw').innerHTML=COLORS.map(c=>`<button type="button" class="sw" role="radio" aria-checked="false" aria-label="${NAMES[c]}" title="${NAMES[c]}" data-c="${c}" style="background:${c}"></button>`).join('');
 document.querySelectorAll('.sw').forEach(b=>b.onclick=()=>setColor(b.dataset.c));
 function openDlg(p){
   editId=p?p.id:null;
